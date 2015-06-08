@@ -24,6 +24,42 @@ namespace Microsoft.AspNet.Razor.TagHelpers
         }
 
         /// <summary>
+        ///  Internal for testing.
+        /// </summary>
+        internal TagHelperAttributeDescriptor(
+            [NotNull] string name,
+            [NotNull] string propertyName,
+            [NotNull] string typeName,
+            bool isIndexer)
+            : this(
+                name,
+                propertyName,
+                typeName,
+                isIndexer,
+                isStringProperty: string.Equals(typeName, typeof(string).FullName, StringComparison.Ordinal))
+        {
+        }
+
+        /// <summary>
+        ///  Internal for testing.
+        /// </summary>
+        internal TagHelperAttributeDescriptor(
+            [NotNull] string name,
+            [NotNull] string propertyName,
+            [NotNull] string typeName,
+            bool isIndexer,
+            bool isStringProperty)
+            : this(
+                  name,
+                  propertyName,
+                  typeName,
+                  isIndexer,
+                  isStringProperty: string.Equals(typeName, typeof(string).FullName, StringComparison.Ordinal),
+                  useage: null)
+        {
+        }
+
+        /// <summary>
         /// Instantiates a new instance of the <see cref="TagHelperAttributeDescriptor"/> class.
         /// </summary>
         /// <param name="name">
@@ -46,13 +82,15 @@ namespace Microsoft.AspNet.Razor.TagHelpers
             [NotNull] string name,
             [NotNull] string propertyName,
             [NotNull] string typeName,
-            bool isIndexer)
+            bool isIndexer,
+            TagHelperUseageDescriptor useage)
             : this(
                   name,
                   propertyName,
                   typeName,
                   isIndexer,
-                  isStringProperty: string.Equals(typeName, typeof(string).FullName, StringComparison.Ordinal))
+                  isStringProperty: string.Equals(typeName, typeof(string).FullName, StringComparison.Ordinal),
+                  useage: useage)
         {
         }
 
@@ -62,7 +100,8 @@ namespace Microsoft.AspNet.Razor.TagHelpers
             [NotNull] string propertyName,
             [NotNull] string typeName,
             bool isIndexer,
-            bool isStringProperty)
+            bool isStringProperty,
+            TagHelperUseageDescriptor useage)
         {
             Name = name;
             PropertyName = propertyName;
@@ -70,6 +109,11 @@ namespace Microsoft.AspNet.Razor.TagHelpers
             IsIndexer = isIndexer;
             IsStringProperty = isStringProperty;
         }
+
+        /// <summary>
+        /// TODO
+        /// </summary>
+        public TagHelperUseageDescriptor Useage { get; }
 
         /// <summary>
         /// Gets an indication whether this <see cref="TagHelperAttributeDescriptor"/> is used for dictionary indexer

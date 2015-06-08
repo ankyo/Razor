@@ -44,17 +44,27 @@ namespace Microsoft.AspNet.Razor.Runtime.TagHelpers
         public static IEnumerable<TagHelperDescriptor> CreateDescriptors(
             string assemblyName,
             [NotNull] Type type,
+            bool designTime,
             [NotNull] ErrorSink errorSink)
         {
             var typeInfo = type.GetTypeInfo();
-            var attributeDescriptors = GetAttributeDescriptors(type, errorSink);
+            var attributeDescriptors = GetAttributeDescriptors(type, designTime, errorSink);
             var targetElementAttributes = GetValidTargetElementAttributes(typeInfo, errorSink);
+            TagHelperUseageDescriptor typeUseageDescriptor = null;
+
+#if !DNXCORE50
+            // The TagHelperUseageDescriptor is consumed at design time to provide IntelliSense when typing HTML
+            // elements or attributes that are tag helper related.
+            typeUseageDescriptor = designTime ? TagHelperUseageDescriptorFactory.CreateDescriptor(typeInfo) : null;
+#endif
+
             var tagHelperDescriptors =
                 BuildTagHelperDescriptors(
                     typeInfo,
                     assemblyName,
                     attributeDescriptors,
-                    targetElementAttributes);
+                    targetElementAttributes,
+                    typeUseageDescriptor);
 
             return tagHelperDescriptors.Distinct(TagHelperDescriptorComparer.Default);
         }
@@ -72,7 +82,8 @@ namespace Microsoft.AspNet.Razor.Runtime.TagHelpers
             TypeInfo typeInfo,
             string assemblyName,
             IEnumerable<TagHelperAttributeDescriptor> attributeDescriptors,
-            IEnumerable<TargetElementAttribute> targetElementAttributes)
+            IEnumerable<TargetElementAttribute> targetElementAttributes,
+            TagHelperUseageDescriptor useageDescriptor)
         {
             var typeName = typeInfo.FullName;
 
@@ -93,19 +104,27 @@ namespace Microsoft.AspNet.Razor.Runtime.TagHelpers
                         typeName,
                         assemblyName,
                         attributeDescriptors,
-                        requiredAttributes: Enumerable.Empty<string>())
+                        requiredAttributes: Enumerable.Empty<string>(),
+                        useageDescriptor: useageDescriptor)
                 };
             }
 
             return targetElementAttributes.Select(
-                attribute => BuildTagHelperDescriptor(typeName, assemblyName, attributeDescriptors, attribute));
+                attribute =>
+                    BuildTagHelperDescriptor(
+                        typeName,
+                        assemblyName,
+                        attributeDescriptors,
+                        attribute,
+                        useageDescriptor: useageDescriptor));
         }
 
         private static TagHelperDescriptor BuildTagHelperDescriptor(
             string typeName,
             string assemblyName,
             IEnumerable<TagHelperAttributeDescriptor> attributeDescriptors,
-            TargetElementAttribute targetElementAttribute)
+            TargetElementAttribute targetElementAttribute,
+            TagHelperUseageDescriptor useageDescriptor)
         {
             var requiredAttributes = GetCommaSeparatedValues(targetElementAttribute.Attributes);
 
@@ -114,7 +133,8 @@ namespace Microsoft.AspNet.Razor.Runtime.TagHelpers
                 typeName,
                 assemblyName,
                 attributeDescriptors,
-                requiredAttributes);
+                requiredAttributes,
+                useageDescriptor);
         }
 
         private static TagHelperDescriptor BuildTagHelperDescriptor(
@@ -122,7 +142,8 @@ namespace Microsoft.AspNet.Razor.Runtime.TagHelpers
             string typeName,
             string assemblyName,
             IEnumerable<TagHelperAttributeDescriptor> attributeDescriptors,
-            IEnumerable<string> requiredAttributes)
+            IEnumerable<string> requiredAttributes,
+            TagHelperUseageDescriptor useageDescriptor)
         {
             return new TagHelperDescriptor(
                 prefix: string.Empty,
@@ -130,7 +151,8 @@ namespace Microsoft.AspNet.Razor.Runtime.TagHelpers
                 typeName: typeName,
                 assemblyName: assemblyName,
                 attributes: attributeDescriptors,
-                requiredAttributes: requiredAttributes);
+                requiredAttributes: requiredAttributes,
+                useage: useageDescriptor);
         }
 
         /// <summary>
@@ -225,6 +247,7 @@ namespace Microsoft.AspNet.Razor.Runtime.TagHelpers
 
         private static IEnumerable<TagHelperAttributeDescriptor> GetAttributeDescriptors(
             Type type,
+            bool designTime,
             ErrorSink errorSink)
         {
             var accessibleProperties = type.GetRuntimeProperties().Where(IsAccessibleProperty);
@@ -236,7 +259,7 @@ namespace Microsoft.AspNet.Razor.Runtime.TagHelpers
             foreach (var property in accessibleProperties)
             {
                 var attributeNameAttribute = property.GetCustomAttribute<HtmlAttributeNameAttribute>(inherit: false);
-                var descriptor = ToAttributeDescriptor(property, attributeNameAttribute);
+                var descriptor = ToAttributeDescriptor(property, attributeNameAttribute, designTime);
                 if (ValidateTagHelperAttributeDescriptor(descriptor, type, errorSink))
                 {
                     bool isInvalid;
@@ -246,7 +269,8 @@ namespace Microsoft.AspNet.Razor.Runtime.TagHelpers
                         parentType: type,
                         errorSink: errorSink,
                         defaultPrefix: descriptor.Name + "-",
-                        isInvalid: out isInvalid);
+                        isInvalid: out isInvalid,
+                        designTime: designTime);
 
                     if (indexerDescriptor != null &&
                         !ValidateTagHelperAttributeDescriptor(indexerDescriptor, type, errorSink))
@@ -358,17 +382,19 @@ namespace Microsoft.AspNet.Razor.Runtime.TagHelpers
 
         private static TagHelperAttributeDescriptor ToAttributeDescriptor(
             PropertyInfo property,
-            HtmlAttributeNameAttribute attributeNameAttribute)
+            HtmlAttributeNameAttribute attributeNameAttribute,
+            bool designTime)
         {
             var attributeName = attributeNameAttribute != null ?
                                 attributeNameAttribute.Name :
                                 ToHtmlCase(property.Name);
 
-            return new TagHelperAttributeDescriptor(
+            return ToAttributeDescriptor(
+                property,
                 attributeName,
-                property.Name,
                 property.PropertyType.FullName,
-                isIndexer: false);
+                isIndexer: false,
+                designTime: designTime);
         }
 
         private static TagHelperAttributeDescriptor ToIndexerAttributeDescriptor(
@@ -377,6 +403,7 @@ namespace Microsoft.AspNet.Razor.Runtime.TagHelpers
             Type parentType,
             ErrorSink errorSink,
             string defaultPrefix,
+            bool designTime,
             out bool isInvalid)
         {
             isInvalid = false;
@@ -414,11 +441,35 @@ namespace Microsoft.AspNet.Razor.Runtime.TagHelpers
                 return null;
             }
 
-            return new TagHelperAttributeDescriptor(
-                name: prefix,
-                propertyName: property.Name,
+            return ToAttributeDescriptor(
+                property,
+                attributeName: prefix,
                 typeName: dictionaryTypeArguments[1].FullName,
-                isIndexer: true);
+                isIndexer: true,
+                designTime: designTime);
+        }
+
+        private static TagHelperAttributeDescriptor ToAttributeDescriptor(
+            PropertyInfo property,
+            string attributeName,
+            string typeName,
+            bool isIndexer,
+            bool designTime)
+        {
+            TagHelperUseageDescriptor propertyUseageDescriptor = null;
+
+#if !DNXCORE50
+            // The TagHelperUseageDescriptor is consumed at design time to provide IntelliSense when typing HTML
+            // elements or attributes that are tag helper related.
+            propertyUseageDescriptor = designTime ? TagHelperUseageDescriptorFactory.CreateDescriptor(property) : null;
+#endif
+
+            return new TagHelperAttributeDescriptor(
+                attributeName,
+                property.Name,
+                property.PropertyType.FullName,
+                isIndexer,
+                useage: propertyUseageDescriptor);
         }
 
         private static bool IsAccessibleProperty(PropertyInfo property)

@@ -64,24 +64,9 @@ namespace Microsoft.AspNet.Razor.TagHelpers
         }
 
         /// <summary>
-        /// Instantiates a new instance of the <see cref="TagHelperDescriptor"/> class with the given
-        /// <paramref name="attributes"/>.
+        /// Internal for testing.
         /// </summary>
-        /// <param name="prefix">
-        /// Text used as a required prefix when matching HTML start and end tags in the Razor source to available
-        /// tag helpers.
-        /// </param>
-        /// <param name="tagName">The tag name that the tag helper targets. '*' indicates a catch-all
-        /// <see cref="TagHelperDescriptor"/> which applies to every HTML tag.</param>
-        /// <param name="typeName">The full name of the tag helper class.</param>
-        /// <param name="assemblyName">The name of the assembly containing the tag helper class.</param>
-        /// <param name="attributes">
-        /// The <see cref="TagHelperAttributeDescriptor"/>s to request from the HTML tag.
-        /// </param>
-        /// <param name="requiredAttributes">
-        /// The attribute names required for the tag helper to target the HTML tag.
-        /// </param>
-        public TagHelperDescriptor(
+        internal TagHelperDescriptor(
             string prefix,
             [NotNull] string tagName,
             [NotNull] string typeName,
@@ -99,36 +84,74 @@ namespace Microsoft.AspNet.Razor.TagHelpers
         }
 
         /// <summary>
+        /// Instantiates a new instance of the <see cref="TagHelperDescriptor"/> class with the given
+        /// <paramref name="attributes"/>.
+        /// </summary>
+        /// <param name="prefix">
+        /// Text used as a required prefix when matching HTML start and end tags in the Razor source to available
+        /// tag helpers.
+        /// </param>
+        /// <param name="tagName">The tag name that the tag helper targets. '*' indicates a catch-all
+        /// <see cref="TagHelperDescriptor"/> which applies to every HTML tag.</param>
+        /// <param name="typeName">The full name of the tag helper class.</param>
+        /// <param name="assemblyName">The name of the assembly containing the tag helper class.</param>
+        /// <param name="attributes">
+        /// The <see cref="TagHelperAttributeDescriptor"/>s to request from the HTML tag.
+        /// </param>
+        /// <param name="requiredAttributes">
+        /// The attribute names required for the tag helper to target the HTML tag.
+        /// </param>
+        /// <param name="useage">TODO</param>
+        public TagHelperDescriptor(
+            string prefix,
+            [NotNull] string tagName,
+            [NotNull] string typeName,
+            [NotNull] string assemblyName,
+            [NotNull] IEnumerable<TagHelperAttributeDescriptor> attributes,
+            [NotNull] IEnumerable<string> requiredAttributes,
+            TagHelperUseageDescriptor useage)
+        {
+            Prefix = prefix ?? string.Empty;
+            TagName = tagName;
+            FullTagName = Prefix + TagName;
+            TypeName = typeName;
+            AssemblyName = assemblyName;
+            Attributes = new List<TagHelperAttributeDescriptor>(attributes);
+            RequiredAttributes = new List<string>(requiredAttributes);
+            Useage = useage;
+        }
+
+        /// <summary>
         /// Text used as a required prefix when matching HTML start and end tags in the Razor source to available
         /// tag helpers.
         /// </summary>
-        public string Prefix { get; private set; }
+        public string Prefix { get; }
 
         /// <summary>
         /// The tag name that the tag helper should target.
         /// </summary>
-        public string TagName { get; private set; }
+        public string TagName { get; }
 
         /// <summary>
         /// The full tag name that is required for the tag helper to target an HTML element.
         /// </summary>
         /// <remarks>This is equivalent to <see cref="Prefix"/> and <see cref="TagName"/> concatenated.</remarks>
-        public string FullTagName { get; private set; }
+        public string FullTagName { get; }
 
         /// <summary>
         /// The full name of the tag helper class.
         /// </summary>
-        public string TypeName { get; private set; }
+        public string TypeName { get; }
 
         /// <summary>
         /// The name of the assembly containing the tag helper class.
         /// </summary>
-        public string AssemblyName { get; private set; }
+        public string AssemblyName { get; }
 
         /// <summary>
         /// The list of attributes the tag helper expects.
         /// </summary>
-        public IReadOnlyList<TagHelperAttributeDescriptor> Attributes { get; private set; }
+        public IReadOnlyList<TagHelperAttributeDescriptor> Attributes { get; }
 
         /// <summary>
         /// The list of required attribute names the tag helper expects to target an element.
@@ -136,6 +159,11 @@ namespace Microsoft.AspNet.Razor.TagHelpers
         /// <remarks>
         /// <c>*</c> at the end of an attribute name acts as a prefix match.
         /// </remarks>
-        public IReadOnlyList<string> RequiredAttributes { get; private set; }
+        public IReadOnlyList<string> RequiredAttributes { get; }
+
+        /// <summary>
+        /// TODO
+        /// </summary>
+        public TagHelperUseageDescriptor Useage { get; }
     }
 }
