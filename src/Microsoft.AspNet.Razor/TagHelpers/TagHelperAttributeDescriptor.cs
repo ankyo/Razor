@@ -54,8 +54,8 @@ namespace Microsoft.AspNet.Razor.TagHelpers
                   propertyName,
                   typeName,
                   isIndexer,
-                  isStringProperty: string.Equals(typeName, typeof(string).FullName, StringComparison.Ordinal),
-                  useage: null)
+                  isStringProperty,
+                  usageDescriptor: null)
         {
         }
 
@@ -83,14 +83,14 @@ namespace Microsoft.AspNet.Razor.TagHelpers
             [NotNull] string propertyName,
             [NotNull] string typeName,
             bool isIndexer,
-            TagHelperUseageDescriptor useage)
+            TagHelperUsageDescriptor usageDescriptor)
             : this(
                   name,
                   propertyName,
                   typeName,
                   isIndexer,
                   isStringProperty: string.Equals(typeName, typeof(string).FullName, StringComparison.Ordinal),
-                  useage: useage)
+                  usageDescriptor: usageDescriptor)
         {
         }
 
@@ -101,7 +101,7 @@ namespace Microsoft.AspNet.Razor.TagHelpers
             [NotNull] string typeName,
             bool isIndexer,
             bool isStringProperty,
-            TagHelperUseageDescriptor useage)
+            TagHelperUsageDescriptor usageDescriptor)
         {
             Name = name;
             PropertyName = propertyName;
@@ -113,7 +113,7 @@ namespace Microsoft.AspNet.Razor.TagHelpers
         /// <summary>
         /// TODO
         /// </summary>
-        public TagHelperUseageDescriptor Useage { get; }
+        public TagHelperUsageDescriptor UsageDescriptor { get; }
 
         /// <summary>
         /// Gets an indication whether this <see cref="TagHelperAttributeDescriptor"/> is used for dictionary indexer

@@ -101,7 +101,7 @@ namespace Microsoft.AspNet.Razor.TagHelpers
         /// <param name="requiredAttributes">
         /// The attribute names required for the tag helper to target the HTML tag.
         /// </param>
-        /// <param name="useage">TODO</param>
+        /// <param name="usageDescriptor">TODO</param>
         public TagHelperDescriptor(
             string prefix,
             [NotNull] string tagName,
@@ -109,7 +109,7 @@ namespace Microsoft.AspNet.Razor.TagHelpers
             [NotNull] string assemblyName,
             [NotNull] IEnumerable<TagHelperAttributeDescriptor> attributes,
             [NotNull] IEnumerable<string> requiredAttributes,
-            TagHelperUseageDescriptor useage)
+            TagHelperUsageDescriptor usageDescriptor)
         {
             Prefix = prefix ?? string.Empty;
             TagName = tagName;
@@ -118,7 +118,7 @@ namespace Microsoft.AspNet.Razor.TagHelpers
             AssemblyName = assemblyName;
             Attributes = new List<TagHelperAttributeDescriptor>(attributes);
             RequiredAttributes = new List<string>(requiredAttributes);
-            Useage = useage;
+            UsageDescriptor = usageDescriptor;
         }
 
         /// <summary>
@@ -164,6 +164,6 @@ namespace Microsoft.AspNet.Razor.TagHelpers
         /// <summary>
         /// TODO
         /// </summary>
-        public TagHelperUseageDescriptor Useage { get; }
+        public TagHelperUsageDescriptor UsageDescriptor { get; }
     }
 }

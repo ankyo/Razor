@@ -80,7 +80,6 @@ namespace Microsoft.AspNet.Razor.Runtime.TagHelpers
                         var descriptors = ResolveDescriptorsInAssembly(
                             lookupInfo.AssemblyName,
                             directiveDescriptor.Location,
-                            _designTime,
                             context.ErrorSink);
 
                         // Only use descriptors that match our lookup info
@@ -125,7 +124,6 @@ namespace Microsoft.AspNet.Razor.Runtime.TagHelpers
         protected virtual IEnumerable<TagHelperDescriptor> ResolveDescriptorsInAssembly(
             string assemblyName,
             SourceLocation documentLocation,
-            bool designTime,
             ErrorSink errorSink)
         {
             // Resolve valid tag helper types from the assembly.
@@ -133,7 +131,7 @@ namespace Microsoft.AspNet.Razor.Runtime.TagHelpers
 
             // Convert types to TagHelperDescriptors
             var descriptors = tagHelperTypes.SelectMany(
-                type => TagHelperDescriptorFactory.CreateDescriptors(assemblyName, type, designTime, errorSink));
+                type => TagHelperDescriptorFactory.CreateDescriptors(assemblyName, type, _designTime, errorSink));
 
             return descriptors;
         }
@@ -154,7 +152,7 @@ namespace Microsoft.AspNet.Razor.Runtime.TagHelpers
                         descriptor.AssemblyName,
                         descriptor.Attributes,
                         descriptor.RequiredAttributes,
-                        descriptor.Useage));
+                        descriptor.UsageDescriptor));
             }
 
             return descriptors;

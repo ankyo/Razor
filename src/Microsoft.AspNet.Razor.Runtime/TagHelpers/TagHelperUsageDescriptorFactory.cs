@@ -13,85 +13,78 @@ using Microsoft.Framework.Internal;
 
 namespace Microsoft.AspNet.Razor.Runtime.TagHelpers
 {
-    public static class TagHelperUseageDescriptorFactory
+    public static class TagHelperUsageDescriptorFactory
     {
-        private static readonly Dictionary<string, XmlDocumentationProvider> XmlDocumentationProviderCache =
-            new Dictionary<string, XmlDocumentationProvider>(StringComparer.Ordinal);
         private static readonly char[] InvalidPathCharacters = Path.GetInvalidPathChars();
 
-        public static TagHelperUseageDescriptor CreateDescriptor([NotNull] TypeInfo typeInfo)
+        public static TagHelperUsageDescriptor CreateDescriptor([NotNull] TypeInfo typeInfo)
         {
             var id = XmlDocumentationProvider.GetId(typeInfo);
             return CreateDescriptorCore(typeInfo.Assembly, id);
         }
 
-        public static TagHelperUseageDescriptor CreateDescriptor([NotNull] PropertyInfo propertyInfo)
+        public static TagHelperUsageDescriptor CreateDescriptor([NotNull] PropertyInfo propertyInfo)
         {
             var id = XmlDocumentationProvider.GetId(propertyInfo);
-            var declaringTypeAssembly = propertyInfo.DeclaringType.GetTypeInfo().Assembly;
-            return CreateDescriptorCore(declaringTypeAssembly, id);
+            var declaringAssembly = propertyInfo.DeclaringType.GetTypeInfo().Assembly;
+            return CreateDescriptorCore(declaringAssembly, id);
         }
 
-        private static TagHelperUseageDescriptor CreateDescriptorCore(Assembly typeAssembly, string id)
+        private static TagHelperUsageDescriptor CreateDescriptorCore(Assembly assembly, string id)
         {
-            var typeAssemblyLocation = typeAssembly.Location;
+            var assemblyLocation = assembly.Location;
 
-            if (string.IsNullOrWhiteSpace(typeAssemblyLocation) && !string.IsNullOrWhiteSpace(typeAssembly.CodeBase))
+            if (string.IsNullOrWhiteSpace(assemblyLocation) && !string.IsNullOrWhiteSpace(assembly.CodeBase))
             {
-                var uri = new UriBuilder(typeAssembly.CodeBase);
+                var uri = new UriBuilder(assembly.CodeBase);
 
                 // Normalize the path to a UNC path. This will remove things like file:// from start of the uri.Path.
-                typeAssemblyLocation = Uri.UnescapeDataString(uri.Path);
+                assemblyLocation = Uri.UnescapeDataString(uri.Path);
 
-                // Still couldn't resolve a valid typeAssemblyLocation.
-                if (string.IsNullOrWhiteSpace(typeAssemblyLocation))
+                // Still couldn't resolve a valid assemblyLocation.
+                if (string.IsNullOrWhiteSpace(assemblyLocation))
                 {
                     return null;
                 }
             }
 
             XmlDocumentationProvider documentationProvider = null;
-            if (!XmlDocumentationProviderCache.TryGetValue(typeAssemblyLocation, out documentationProvider))
+            var xmlDocumentationFile = GetXmlDocumentationFile(assemblyLocation);
+
+            // We only want to process the file if it exists. In the case it doesn't, a null value will be added
+            // to the cache to not constantly look for new XML files.
+            if (xmlDocumentationFile != null)
             {
-                var xmlDocumentationFile = GetXmlDocumentationFile(typeAssemblyLocation);
-
-                // We only want to process the file if it exists. In the case it doesn't, a null value will be added
-                // to the cache to not constantly look for new XML files.
-                if (xmlDocumentationFile != null)
-                {
-                    documentationProvider = new XmlDocumentationProvider(xmlDocumentationFile.FullName);
-                }
-
-                XmlDocumentationProviderCache.Add(typeAssemblyLocation, documentationProvider);
+                documentationProvider = new XmlDocumentationProvider(xmlDocumentationFile.FullName);
             }
 
-            // Members will be null if there is no associated XML file for the provided typeAssembly.
+            // Members will be null if there is no associated XML file for the provided assembly.
             if (documentationProvider != null)
             {
-                if (documentationProvider.HasDocumentation(id))
-                {
-                    var summary = documentationProvider.GetSummary(id);
-                    var remarks = documentationProvider.GetRemarks(id);
+                var summary = documentationProvider.GetSummary(id);
+                var remarks = documentationProvider.GetRemarks(id);
 
-                    return new TagHelperUseageDescriptor(summary, remarks);
+                if (!string.IsNullOrEmpty(summary) || !string.IsNullOrEmpty(remarks))
+                {
+                    return new TagHelperUsageDescriptor(summary, remarks);
                 }
             }
 
             return null;
         }
 
-        private static FileInfo GetXmlDocumentationFile(string typeAssemblyLocation)
+        private static FileInfo GetXmlDocumentationFile(string assemblyLocation)
         {
-            if (string.IsNullOrWhiteSpace(typeAssemblyLocation) ||
-                typeAssemblyLocation.IndexOfAny(InvalidPathCharacters) != -1)
+            if (string.IsNullOrWhiteSpace(assemblyLocation) ||
+                assemblyLocation.IndexOfAny(InvalidPathCharacters) != -1)
             {
                 return null;
             }
 
             try
             {
-                var assemblyDirectory = Path.GetDirectoryName(typeAssemblyLocation);
-                var assemblyName = Path.GetFileName(typeAssemblyLocation);
+                var assemblyDirectory = Path.GetDirectoryName(assemblyLocation);
+                var assemblyName = Path.GetFileName(assemblyLocation);
                 var assemblyXmlDocumentationName = Path.ChangeExtension(assemblyName, ".xml");
                 var culture = CultureInfo.CurrentCulture;
 

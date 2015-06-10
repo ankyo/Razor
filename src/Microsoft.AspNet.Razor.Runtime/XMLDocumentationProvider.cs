@@ -1,7 +1,7 @@
 ﻿// Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
-#if !DNXCORE50 // Not used in coreclr
+#if !DNXCORE50
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -35,11 +35,6 @@ namespace Microsoft.AspNet.Razor.Runtime
             var associatedMemeber = GetMember(id);
 
             return associatedMemeber?.Element("remarks")?.Value.Trim();
-        }
-
-        public bool HasDocumentation(string id)
-        {
-            return GetMember(id) != null;
         }
 
         public static string GetId([NotNull] TypeInfo typeInfo)

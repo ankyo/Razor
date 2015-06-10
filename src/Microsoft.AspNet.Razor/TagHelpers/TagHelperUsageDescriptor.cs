@@ -3,9 +3,9 @@
 
 namespace Microsoft.AspNet.Razor.TagHelpers
 {
-    public class TagHelperUseageDescriptor
+    public class TagHelperUsageDescriptor
     {
-        public TagHelperUseageDescriptor(string summary, string remarks)
+        public TagHelperUsageDescriptor(string summary, string remarks)
         {
             Summary = summary;
             Remarks = remarks;
